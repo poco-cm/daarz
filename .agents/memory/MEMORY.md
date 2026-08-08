@@ -1,0 +1,1 @@
+- [Remote repository synchronization](remote-repository-sync.md) — synchronize independent remote history before pushing; never overwrite it with a force push.
