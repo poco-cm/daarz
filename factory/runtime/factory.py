@@ -11,11 +11,14 @@ not implicitly authority over the other.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import Iterable, Optional
 
 from agents.registry.registry import AgentRegistry
 from factory.schemas.agent_spec import KIND_ACCUMULATOR, AgentSpec, SpecificationError
+from observability.alerts.alerts import AlertBus, BoundaryBreachAlert
+from observability.logs.execution_log import ExecutionLog
 from runtime.action.action import AccumulateAction
 from runtime.loop.loop import ExecutionLoop
 from runtime.perception.perception import SequencePerception
@@ -34,21 +37,33 @@ class BuiltAgent:
 
     spec: AgentSpec
     loop: ExecutionLoop
+    log: Optional[ExecutionLog] = None
 
     @property
     def agent_id(self) -> str:
         return self.spec.agent_id
 
     def run(self, max_cycles: Optional[int] = None):
-        return self.loop.run(max_cycles=max_cycles)
+        result = self.loop.run(max_cycles=max_cycles)
+        if self.log is not None:
+            self.log.record_run_end(result)
+        return result
 
 
 class AgentFactory:
     """Builds agents from specifications, and registers them durably."""
 
-    def __init__(self, registry: AgentRegistry, kill_switch: KillSwitch):
+    def __init__(
+        self,
+        registry: AgentRegistry,
+        kill_switch: KillSwitch,
+        log_dir: Optional[str] = None,
+        alert_bus: Optional[AlertBus] = None,
+    ):
         self.registry = registry
         self.kill_switch = kill_switch
+        self.log_dir = log_dir
+        self.alert_bus = alert_bus
 
     def build(self, spec: AgentSpec, inputs: Iterable) -> BuiltAgent:
         if spec.kind != KIND_ACCUMULATOR:
@@ -60,15 +75,29 @@ class AgentFactory:
             max_operations=spec.max_operations,
             max_duration_seconds=spec.max_duration_seconds,
         )
+        enforcer = BoundaryEnforcer(boundaries)
         loop = ExecutionLoop(
             agent_id=spec.agent_id,
             perception=SequencePerception(inputs),
             action=AccumulateAction(step=int(spec.parameters.get("step", 1))),
             reflection=SimpleReflection(),
             kill_switch=self.kill_switch,
-            enforcer=BoundaryEnforcer(boundaries),
+            enforcer=enforcer,
         )
-        return BuiltAgent(spec=spec, loop=loop)
+
+        # Observability is wired at construction, so an agent cannot be built
+        # unobserved and then quietly run.
+        log = None
+        if self.log_dir is not None:
+            log = ExecutionLog(
+                os.path.join(self.log_dir, f"{spec.agent_id}.jsonl"), spec.agent_id
+            )
+            loop.observe(log.record_cycle)
+            enforcer.on_violation(log.record_violation)
+        if self.alert_bus is not None:
+            enforcer.on_violation(BoundaryBreachAlert(self.alert_bus, spec.agent_id))
+
+        return BuiltAgent(spec=spec, loop=loop, log=log)
 
     def create_and_register(self, spec: AgentSpec, inputs: Iterable) -> BuiltAgent:
         """Build an agent and enter it in the civil registry, in that order.
