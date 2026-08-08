@@ -1,0 +1,3 @@
+# runtime kill switch state is machine-local, never committed
+*.json
+*.tmp
