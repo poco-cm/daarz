@@ -1,6 +1,6 @@
 # Genesis Scaffold Report
 
-**Revision:** 2 (2026-08-08) — supersedes revision 1, which contained one factual error corrected below.
+**Revision:** 3 (2026-08-09) — supersedes revision 2. Revision 1 contained one factual error, corrected in revision 2 and retained below for the record.
 **Reference:** `CIVILIZATION_GENESIS_SPECIFICATION`
 **Verification method:** automated comparison of the full repository tree against the specification, plus field-level reading of all seventeen institutional `MANIFEST.md` files.
 
@@ -39,7 +39,9 @@
 
 Additionally `scripts/src/hello.ts`, `scripts/post-merge.sh`, and `scripts/package.json` place executable content inside a specification-defined layer.
 
-**Status of this deviation:** unresolved. It is a governance question under Spec §7 and §8, not an executive one. It is recorded as an open proposal in `governance/architecture_changes/proposals/` and must be either formally ratified as a documented exception or isolated, before the Genesis exit test can be declared passed. Nothing was deleted; Spec §8 prohibits removal without a direct explicit human order.
+**Status of this deviation: resolved by ratification, 2026-08-09.** The human operator approved Option A of `PROP-2026-08-08-001`: the content is ratified as a closed, isolated infrastructure annex holding no civilizational authority. See `archive/decisions/DEC-2026-08-09-002-ratify-infrastructure-annex.md` and the binding conditions in `archive/constitutional/ANNEX-001-infrastructure-scope.md`.
+
+The binding conditions are: the annex set is closed; no institution, agent, protocol, or runtime loop may import from or execute annex content; `scripts/` is **not** annexed and its executable files are inert legacy that no agent may invoke; any new annex root requires a fresh §7 passage. Nothing was deleted.
 
 ## Deliberate non-actions
 
@@ -55,6 +57,8 @@ Spec §5 requires this report to match the specification 100%. Current state:
 
 - Institutional structure, manifests, `protocols/`, `civilization/`, `archive/`: **matching**.
 - Lightweight layers per §1: **matching as of revision 2**.
-- Out-of-specification content: **not matching, pending governance**.
+- Out-of-specification content: **ratified as a declared annex**, revision 3.
 
-The Genesis exit test is therefore **not yet passed**. One open item remains, and it is named above rather than omitted.
+The Genesis exit test is therefore **passed**, on 2026-08-09. Recorded in `civilization/milestones/MS-001-genesis-complete.md`. The civilization enters the Birth phase.
+
+This report claims nothing it did not verify. Every figure above comes from a scan of the tracked tree, not from intent.
