@@ -1,0 +1,3 @@
+# civil registry state is machine-local runtime data
+*.json
+*.tmp
