@@ -1,6 +1,6 @@
-# [Project name]
+# ai-civilization
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Genesis scaffold for a governed, learnable AI civilization. The repository currently defines institutional boundaries, lifecycle phases, shared protocols, and archival structure before any live execution is permitted.
 
 ## Run & Operate
 
@@ -22,23 +22,30 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `CIVILIZATION-GENESIS-SPECIFICATION` — source document for the Genesis scaffold.
+- `SCAFFOLD_REPORT.md` — structural completion and compliance report.
+- `constitution/`, `governance/`, `civilization/`, `factory/`, `universities/`, `research/`, `defense/`, `population/`, `institutions/`, `scientists/`, `economy/`, `knowledge/`, `memory/`, `learning/`, `safety/`, `security/`, `archive/` — full institutional pattern.
+- `protocols/` — schema-only shared language locations.
+- Root lightweight directories — infrastructure and tooling layers defined by the specification.
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Genesis is documentation-only: no agent, runtime loop, permission, or governance authority is active.
+- Full institutional structure is limited to the 17 institutions named by the specification.
+- `civilization/institutions/` and `civilization/population/` are reference indexes, not duplicate sources of truth.
+- Architectural changes must follow the documented proposal-to-promotion pipeline.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+The product is in its Genesis phase. Its current capability is to make the future civilization's meaning, authority boundaries, lifecycle, protocols, and preservation model explicit and auditable.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Do not implement live behavior before the Genesis scaffold is approved and the next phase is explicitly authorized.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Before any Birth-phase work, verify the scaffold report and preserve the 15-field manifest contract for every full institution.
 
 ## Pointers
 
