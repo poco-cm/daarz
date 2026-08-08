@@ -28,13 +28,18 @@ class AccumulateAction:
     before it. Two agents fed different inputs cannot produce the same history.
     """
 
-    def __init__(self, step: int = 1):
+    def __init__(self, step: int = 1, initial_total: int = 0):
         if not isinstance(step, int) or isinstance(step, bool):
             raise TypeError("step must be an integer")
         if step == 0:
             raise ValueError("a step of 0 would make every action inert")
+        if not isinstance(initial_total, int) or isinstance(initial_total, bool):
+            raise TypeError("initial_total must be an integer")
         self.step = step
-        self._total = 0
+        # `initial_total` is how remembered work re-enters a new run. An agent that
+        # resumes from zero after being stopped has not remembered anything.
+        self._initial_total = initial_total
+        self._total = initial_total
         self._applied = 0
 
     @property
@@ -44,6 +49,10 @@ class AccumulateAction:
     @property
     def applied(self) -> int:
         return self._applied
+
+    @property
+    def resumed_from(self) -> int:
+        return self._initial_total
 
     def perform(self, percept: Percept) -> ActionResult:
         if percept.empty:

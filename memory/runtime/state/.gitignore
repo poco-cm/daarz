@@ -1,0 +1,3 @@
+# institutional memory state is machine-local runtime data
+*.jsonl
+*.tmp

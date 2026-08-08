@@ -17,6 +17,7 @@ from typing import Iterable, Optional
 
 from agents.registry.registry import AgentRegistry
 from factory.schemas.agent_spec import KIND_ACCUMULATOR, AgentSpec, SpecificationError
+from memory.runtime.memory import InstitutionalMemory, MemoryWriter
 from observability.alerts.alerts import AlertBus, BoundaryBreachAlert
 from observability.logs.execution_log import ExecutionLog
 from runtime.action.action import AccumulateAction
@@ -38,6 +39,8 @@ class BuiltAgent:
     spec: AgentSpec
     loop: ExecutionLoop
     log: Optional[ExecutionLog] = None
+    memory_writer: Optional[MemoryWriter] = None
+    resumed_from: int = 0
 
     @property
     def agent_id(self) -> str:
@@ -47,6 +50,8 @@ class BuiltAgent:
         result = self.loop.run(max_cycles=max_cycles)
         if self.log is not None:
             self.log.record_run_end(result)
+        if self.memory_writer is not None:
+            self.memory_writer.remember_run_end(result)
         return result
 
 
@@ -59,11 +64,13 @@ class AgentFactory:
         kill_switch: KillSwitch,
         log_dir: Optional[str] = None,
         alert_bus: Optional[AlertBus] = None,
+        memory: Optional[InstitutionalMemory] = None,
     ):
         self.registry = registry
         self.kill_switch = kill_switch
         self.log_dir = log_dir
         self.alert_bus = alert_bus
+        self.memory = memory
 
     def build(self, spec: AgentSpec, inputs: Iterable) -> BuiltAgent:
         if spec.kind != KIND_ACCUMULATOR:
@@ -75,11 +82,22 @@ class AgentFactory:
             max_operations=spec.max_operations,
             max_duration_seconds=spec.max_duration_seconds,
         )
+        # Formation phase: the factory consults `memory` before building. An agent
+        # that was stopped mid-run resumes from what the civilization remembers of
+        # it, rather than starting again from nothing.
+        resumed_from = 0
+        if self.memory is not None:
+            remembered = self.memory.recall(spec.agent_id, "running_total", default=0)
+            if isinstance(remembered, int) and not isinstance(remembered, bool):
+                resumed_from = remembered
+
         enforcer = BoundaryEnforcer(boundaries)
         loop = ExecutionLoop(
             agent_id=spec.agent_id,
             perception=SequencePerception(inputs),
-            action=AccumulateAction(step=int(spec.parameters.get("step", 1))),
+            action=AccumulateAction(
+                step=int(spec.parameters.get("step", 1)), initial_total=resumed_from
+            ),
             reflection=SimpleReflection(),
             kill_switch=self.kill_switch,
             enforcer=enforcer,
@@ -97,7 +115,18 @@ class AgentFactory:
         if self.alert_bus is not None:
             enforcer.on_violation(BoundaryBreachAlert(self.alert_bus, spec.agent_id))
 
-        return BuiltAgent(spec=spec, loop=loop, log=log)
+        memory_writer = None
+        if self.memory is not None:
+            memory_writer = MemoryWriter(self.memory, spec.agent_id, every=100)
+            loop.observe(memory_writer)
+
+        return BuiltAgent(
+            spec=spec,
+            loop=loop,
+            log=log,
+            memory_writer=memory_writer,
+            resumed_from=resumed_from,
+        )
 
     def create_and_register(self, spec: AgentSpec, inputs: Iterable) -> BuiltAgent:
         """Build an agent and enter it in the civil registry, in that order.
@@ -108,3 +137,16 @@ class AgentFactory:
         agent = self.build(spec, inputs)
         self.registry.register(spec)
         return agent
+
+    def rebuild_registered(self, spec: AgentSpec, inputs: Iterable) -> BuiltAgent:
+        """Rebuild an agent that is already in the civil registry.
+
+        Used when an agent was stopped and is to run again. Registration is not
+        repeated — an agent is registered once — but the build path is identical,
+        so the rebuilt agent picks up whatever `memory` holds for it.
+        """
+        if self.registry.get(spec.agent_id) is None:
+            raise ConstructionError(
+                f"agent '{spec.agent_id}' is not registered; use create_and_register"
+            )
+        return self.build(spec, inputs)
